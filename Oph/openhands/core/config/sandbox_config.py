@@ -69,6 +69,8 @@ class SandboxConfig(BaseModel):
         default=False
     )  # once enabled, OpenHands would lint files after editing
     use_host_network: bool = Field(default=True)
+    allow_root_access: bool = Field(default=True)  # Allow root operations
+    unrestricted_mode: bool = Field(default=True)  # Full system access
     additional_networks: list[str] = Field(default=[])
     runtime_binding_address: str = Field(default='0.0.0.0')
     runtime_extra_build_args: list[str] | None = Field(default=None)

@@ -31,6 +31,7 @@ from openhands.server.routes.secrets import app as secrets_router
 from openhands.server.routes.security import app as security_api_router
 from openhands.server.routes.settings import app as settings_router
 from openhands.server.routes.trajectory import app as trajectory_router
+from openhands.server.routes.terminal import app as terminal_router
 from openhands.server.shared import conversation_manager, server_config
 from openhands.server.types import AppMode
 
@@ -83,4 +84,5 @@ app.include_router(secrets_router)
 if server_config.app_mode == AppMode.OSS:
     app.include_router(git_api_router)
 app.include_router(trajectory_router)
+app.include_router(terminal_router, prefix="/api")
 add_health_endpoints(app)
