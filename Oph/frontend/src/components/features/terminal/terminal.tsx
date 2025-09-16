@@ -99,7 +99,7 @@ function Terminal() {
       {isRuntimeInactive && <WaitingForRuntimeMessage className="pt-16" />}
 
       {/* Terminal Mode Toggle */}
-      <div className="flex justify-between items-center p-2 bg-neutral-800 border-b border-neutral-600">
+      <div className="flex justify-between items-center p-2 bg-white border-b border-gray-300">
         <div className="flex gap-2">
           <button
             onClick={toggleMode}
@@ -107,7 +107,7 @@ function Terminal() {
               "px-3 py-1 rounded text-sm font-medium transition-colors",
               isInteractive 
                 ? "bg-blue-600 text-white" 
-                : "bg-neutral-700 text-neutral-300 hover:bg-neutral-600"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             )}
           >
             Interactive

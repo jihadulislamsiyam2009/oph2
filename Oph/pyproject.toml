@@ -5,9 +5,9 @@ requires = [
 ]
 
 [tool.poetry]
-name = "openhands-ai"
+name = "darkhands-ai"
 version = "0.56.0"
-description = "OpenHands: Code Less, Make More"
+description = "DarkHands: Code Less, Make More"
 authors = [ "OpenHands" ]
 license = "MIT"
 readme = "README.md"

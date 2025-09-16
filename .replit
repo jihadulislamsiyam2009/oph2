@@ -1,0 +1,11 @@
+[workflows]
+runButton = "DarkHands Server"
+
+[[workflows.workflow]]
+name = "DarkHands Server"
+author = 47666799
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Oph && python -m openhands.server.listen --host 0.0.0.0 --port 5000"

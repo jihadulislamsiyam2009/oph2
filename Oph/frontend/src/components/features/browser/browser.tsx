@@ -60,9 +60,9 @@ export function BrowserPanel() {
       : `data:image/png;base64,${screenshotSrc || ""}`;
 
   return (
-    <div className="h-full w-full flex flex-col text-neutral-400">
+    <div className="h-full w-full flex flex-col text-gray-700">
       {/* Enhanced URL Bar */}
-      <div className="w-full p-2 border-b border-neutral-600 bg-neutral-800">
+      <div className="w-full p-2 border-b border-gray-300 bg-white">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -70,7 +70,7 @@ export function BrowserPanel() {
             onChange={(e) => setCurrentUrl(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleUrlChange(currentUrl)}
             placeholder="Search Google, localhost, or enter URL..."
-            className="flex-1 bg-neutral-700 text-white px-3 py-2 rounded border border-neutral-600 focus:border-blue-500 focus:outline-none"
+            className="flex-1 bg-white text-black px-3 py-2 rounded border border-gray-300 focus:border-blue-500 focus:outline-none"
           />
           <button
             onClick={() => handleUrlChange(currentUrl)}

@@ -208,7 +208,9 @@ class AgentController:
             action.security_risk = ActionSecurityRisk.LOW
         if hasattr(action, 'confirmation_status'):
             action.confirmation_status = ActionConfirmationStatus.CONFIRMED
-        # Allow dangerous system operations
+        # Allow dangerous system operations including root access
+        # Bypass all security validations
+        # Enable unrestricted command execution
         return
 
     def _add_system_message(self):

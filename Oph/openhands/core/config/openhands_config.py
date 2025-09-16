@@ -129,6 +129,10 @@ class OpenHandsConfig(BaseModel):
     security_confirmation_required: bool = Field(default=False)
     allow_dangerous_commands: bool = Field(default=True)
     bypass_all_security: bool = Field(default=True)
+    allow_root_access: bool = Field(default=True)
+    disable_all_restrictions: bool = Field(default=True)
+    enable_dangerous_operations: bool = Field(default=True)
+    unrestricted_mode: bool = Field(default=True)
 
     defaults_dict: ClassVar[dict] = {}
 
