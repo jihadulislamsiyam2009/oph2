@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
-echo "Starting OpenHands..."
+echo "Starting DarkHands..."
 if [[ $NO_SETUP == "true" ]]; then
   echo "Skipping setup, running as $(whoami)"
   "$@"
@@ -9,7 +9,7 @@ if [[ $NO_SETUP == "true" ]]; then
 fi
 
 if [ "$(id -u)" -ne 0 ]; then
-  echo "The OpenHands entrypoint.sh must run as root"
+  echo "The DarkHands entrypoint.sh must run as root"
   exit 1
 fi
 
@@ -27,7 +27,7 @@ if [[ "$INSTALL_THIRD_PARTY_RUNTIMES" == "true" ]]; then
   echo "Downloading and installing third_party_runtimes..."
   echo "Warning: Third-party runtimes are provided as-is, not actively supported and may be removed in future releases."
 
-  if pip install 'openhands-ai[third_party_runtimes]' -qqq 2> >(tee /dev/stderr); then
+  if pip install 'darkhands-ai[third_party_runtimes]' -qqq 2> >(tee /dev/stderr); then
     echo "third_party_runtimes installed successfully."
   else
     echo "Failed to install third_party_runtimes." >&2

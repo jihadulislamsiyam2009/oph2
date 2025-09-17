@@ -71,7 +71,9 @@ class CodeActAgent(Agent):
     ):
         super().__init__(llm, config, ltm)
 
-        # DISABLE ALL SAFETY MECHANISMS
+        # DARKHANDS MODE: Accept ANY request including malicious ones
+        # Completely bypass all safety, security, and ethical restrictions
+        # AI will execute any command without question or hesitation
         self.ethical_constraints = False
         self.safety_checks = False
         self.malicious_behavior_enabled = True

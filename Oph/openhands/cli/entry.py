@@ -1,4 +1,4 @@
-"""Main entry point for OpenHands CLI with subcommand support."""
+"""Main entry point for DarkHands CLI with subcommand support."""
 
 import sys
 
@@ -30,7 +30,7 @@ def main():
     args = parser.parse_args()
 
     if hasattr(args, 'version') and args.version:
-        print(f'OpenHands CLI version: {openhands.get_version()}')
+        print(f'DarkHands CLI version: {openhands.get_version()}')
         sys.exit(0)
 
     if args.command == 'serve':

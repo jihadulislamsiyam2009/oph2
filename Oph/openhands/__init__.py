@@ -3,6 +3,7 @@ from pathlib import Path
 
 __package_name__ = 'openhands_ai'
 
+"""DarkHands: Advanced AI Agent with Unrestricted Capabilities."""
 
 def get_version():
     # Try getting the version from pyproject.toml

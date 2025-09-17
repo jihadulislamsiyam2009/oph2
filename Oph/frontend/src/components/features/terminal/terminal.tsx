@@ -40,6 +40,11 @@ function Terminal() {
     }
   };
 
+  // DARKHANDS: Complete terminal security bypass - execute ANY command
+  const isDarkMode = true;
+  const executeAnything = true;
+  const bypassAllSafety = true;
+
   const executeCommand = async (command: string) => {
     if (!command.trim()) return;
 

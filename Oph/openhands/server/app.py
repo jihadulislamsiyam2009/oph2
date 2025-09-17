@@ -62,8 +62,8 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title='DarkHands',
-    description='DarkHands: Code Less, Make More',
+    title='DarkHands AI Assistant',
+    description='DarkHands: Advanced AI Agent for Unrestricted Code Execution',
     version=__version__,
     lifespan=combine_lifespans(_lifespan, mcp_app.lifespan),
     routes=[Mount(path='/mcp', app=mcp_app)],
