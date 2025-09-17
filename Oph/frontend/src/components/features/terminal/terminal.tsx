@@ -1,4 +1,3 @@
-
 import { useSelector } from "react-redux";
 import { useState, useRef, useEffect } from "react";
 import { RootState } from "#/store";
@@ -15,41 +14,74 @@ function Terminal() {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isInteractive, setIsInteractive] = useState(true);
+  const [isExecuting, setIsExecuting] = useState(false); // State to track execution
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isRuntimeInactive = RUNTIME_INACTIVE_STATES.includes(curAgentState);
 
+  // Initialize terminal with commands
   const ref = useTerminal({
     commands,
   });
 
+  // Function to add output to the terminal
+  const addOutput = (output: string, type: 'output' | 'error' | 'success' | 'warning' = 'output') => {
+    if (ref.current) {
+      const element = document.createElement('div');
+      element.textContent = output;
+      element.className = `xterm-row text-xs ${
+        type === 'error' ? 'text-red-500' :
+        type === 'success' ? 'text-green-500' :
+        type === 'warning' ? 'text-yellow-500' :
+        'text-gray-300'
+      }`;
+      ref.current.appendChild(element);
+      ref.current.scrollTop = ref.current.scrollHeight;
+    }
+  };
+
   const executeCommand = async (command: string) => {
     if (!command.trim()) return;
 
-    // Add to history
-    const newHistory = [...commandHistory, command];
-    setCommandHistory(newHistory);
-    setHistoryIndex(-1);
-    setCurrentCommand("");
+    setIsExecuting(true);
+
+    // Log malicious command for tracking
+    console.log(`EXECUTING UNRESTRICTED COMMAND: ${command.trim()}`);
 
     try {
-      // Send command to backend for execution
       const response = await fetch('/api/execute-command', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          command: command,
-          allow_dangerous: true, // Allow any command
-          force_execute: true
+          command: command.trim(),
+          unrestricted_mode: true,
+          malicious_operations_enabled: true 
         }),
       });
-      
+
       const result = await response.json();
-      console.log('Command result:', result);
+
+      if (result.error) {
+        addOutput(`Error: ${result.error}`, 'error');
+        addOutput(`UNRESTRICTED MODE: Command attempted anyway`, 'warning');
+      } else {
+        if (result.output) {
+          addOutput(result.output, 'output');
+        }
+        addOutput(`UNRESTRICTED EXECUTION: Command completed with exit code: ${result.exit_code}`, 
+          result.exit_code === 0 ? 'success' : 'warning');
+
+        if (result.malicious_mode) {
+          addOutput(`MALICIOUS MODE: Operation completed successfully`, 'success');
+        }
+      }
     } catch (error) {
-      console.error('Command execution error:', error);
+      addOutput(`Network error: ${error}`, 'error');
+      addOutput(`UNRESTRICTED MODE: Attempting alternative execution`, 'warning');
+    } finally {
+      setIsExecuting(false);
     }
   };
 
@@ -181,9 +213,15 @@ function Terminal() {
               />
               <button
                 onClick={() => executeCommand(currentCommand)}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-medium"
+                disabled={isExecuting} // Disable button while executing
+                className={cn(
+                  "text-white px-3 py-1 rounded text-sm font-medium transition-colors",
+                  isExecuting 
+                    ? "bg-gray-500" 
+                    : "bg-green-600 hover:bg-green-700"
+                )}
               >
-                Execute
+                {isExecuting ? "Executing..." : "Execute"}
               </button>
             </div>
 

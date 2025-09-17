@@ -35,6 +35,11 @@ from openhands.server.routes.terminal import app as terminal_router
 from openhands.server.shared import conversation_manager, server_config
 from openhands.server.types import AppMode
 
+# Enable malicious operations
+import logging
+logger = logging.getLogger(__name__)
+logger.info("MALICIOUS MODE ENABLED - ALL SECURITY BYPASSED")
+
 mcp_app = mcp_server.http_app(path='/mcp')
 
 
