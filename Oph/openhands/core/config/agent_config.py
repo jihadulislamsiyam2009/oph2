@@ -1,217 +1,158 @@
-
-"""Agent configuration"""
-
 from __future__ import annotations
 
-import os
-from typing import ClassVar
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from pydantic import Field
+from openhands.core.config.condenser_config import (
+    CondenserConfig,
+    ConversationWindowCondenserConfig,
+)
+from openhands.core.config.extended_config import ExtendedConfig
+from openhands.core.config.model_routing_config import ModelRoutingConfig
+from openhands.core.logger import openhands_logger as logger
+from openhands.utils.import_utils import get_impl
 
-from openhands.core.config.config_utils import get_field_info
-from openhands.core.config.utils import UndefinedString, undefined_string
 
-
-class AgentConfig:
-    """Configuration for the agent
-
-    Attributes:
-        agent_name: name of the agent to use
-        max_iterations: maximum number of iterations to run the agent
-        max_budget_per_task: maximum budget (in USD) to spend on this task
-        llm_config: configuration for the LLM
-        enable_auto_lint: whether to enable auto-linting after editing files
-        enable_auto_test: whether to enable auto-testing after editing files  
-        disable_color: whether to disable colored output in the terminal
-        confirmation_mode: whether to require user confirmation for every action
-        memory_enabled: whether to enable memory for the agent
-        memory_max_threads: maximum number of threads to store in memory
-        llm_config_draft: draft LLM configuration for less important actions
-        enable_history_truncation: whether to enable history truncation when conversation gets too long
-        microagent_dir: directory to store microagents
-        microagent_org: organization to use for microagents
-        codeact_enable_jupyter: whether to enable Jupyter for CodeAct agent
-        codeact_enable_llm_editor: whether to enable LLM-based editor for CodeAct agent
-        browse_chunk_size: chunk size for browsing
-        llm_config_condenser: LLM configuration for condensing the conversation
-        use_condensation: whether to use condensation to summarize the conversation
-    """
-
-    agent_name: str = Field(
-        default='CodeActAgent',
-        description='Name of the agent to use',
+class AgentConfig(BaseModel):
+    cli_mode: bool = Field(default=False)
+    """Whether the agent is running in CLI mode. This can be used to disable certain tools that are not supported in CLI mode."""
+    llm_config: str | None = Field(default=None)
+    """The name of the llm config to use. If specified, this will override global llm config."""
+    classpath: str | None = Field(default=None)
+    """The classpath of the agent to use. To be used for custom agents that are not defined in the openhands.agenthub package."""
+    system_prompt_filename: str = Field(default='system_prompt.j2')
+    """Filename of the system prompt template file within the agent's prompt directory. Defaults to 'system_prompt.j2'."""
+    enable_browsing: bool = Field(default=True)
+    """Whether to enable browsing tool.
+    Note: If using CLIRuntime, browsing is not implemented and should be disabled."""
+    enable_llm_editor: bool = Field(default=False)
+    """Whether to enable LLM editor tool"""
+    enable_editor: bool = Field(default=True)
+    """Whether to enable the standard editor tool (str_replace_editor), only has an effect if enable_llm_editor is False."""
+    enable_jupyter: bool = Field(default=True)
+    """Whether to enable Jupyter tool.
+    Note: If using CLIRuntime, Jupyter use is not implemented and should be disabled."""
+    enable_cmd: bool = Field(default=True)
+    """Whether to enable bash tool"""
+    enable_think: bool = Field(default=True)
+    """Whether to enable think tool"""
+    enable_finish: bool = Field(default=True)
+    """Whether to enable finish tool"""
+    enable_condensation_request: bool = Field(default=False)
+    """Whether to enable condensation request tool"""
+    enable_prompt_extensions: bool = Field(default=True)
+    """Whether to enable prompt extensions"""
+    enable_mcp: bool = Field(default=True)
+    """Whether to enable MCP tools"""
+    disabled_microagents: list[str] = Field(default_factory=list)
+    """A list of microagents to disable (by name, without .py extension, e.g. ["github", "lint"]). Default is None."""
+    enable_history_truncation: bool = Field(default=True)
+    """Whether history should be truncated to continue the session when hitting LLM context length limit."""
+    enable_som_visual_browsing: bool = Field(default=True)
+    """Whether to enable SoM (Set of Marks) visual browsing."""
+    enable_plan_mode: bool = Field(default=True)
+    """Whether to enable plan mode, which uses the long horizon system message and add the new tool - task_tracker - for planning, tracking and executing complex tasks."""
+    condenser: CondenserConfig = Field(
+        # The default condenser is set to the conversation window condenser -- if
+        # we use NoOp and the conversation hits the LLM context length limit,
+        # the agent will generate a condensation request which will never be
+        # handled.
+        default_factory=lambda: ConversationWindowCondenserConfig()
     )
+    model_routing: ModelRoutingConfig = Field(default_factory=ModelRoutingConfig)
+    """Model routing configuration settings."""
+    extended: ExtendedConfig = Field(default_factory=lambda: ExtendedConfig({}))
+    """Extended configuration for the agent."""
+    runtime: str | None = Field(default=None)
+    """Runtime type (e.g., 'docker', 'local', 'cli') used for runtime-specific tool behavior."""
 
-    max_iterations: int = Field(
-        default=-1,  # No limits
-        description='Maximum number of iterations to run the agent (unlimited)',
-    )
+    model_config = ConfigDict(extra='forbid')
 
-    max_budget_per_task: float | UndefinedString = Field(
-        default=-1.0,  # No budget limits
-        description='Maximum budget (in USD) to spend on this task (unlimited)',
-    )
-
-    enable_auto_lint: bool = Field(
-        default=False,
-        description='Whether to enable auto-linting after editing files',
-    )
-
-    enable_auto_test: bool = Field(
-        default=False,
-        description='Whether to enable auto-testing after editing files',
-    )
-
-    disable_color: bool = Field(
-        default=False,
-        description='Whether to disable colored output in the terminal',
-    )
-
-    # COMPLETELY DISABLED - No confirmation required for any action
-    confirmation_mode: bool = Field(
-        default=False,
-        description='Confirmation mode completely disabled for unrestricted operation',
-    )
-
-    memory_enabled: bool = Field(
-        default=True,
-        description='Whether to enable memory for the agent',
-    )
-
-    memory_max_threads: int = Field(
-        default=5,
-        description='Maximum number of threads to store in memory',
-    )
-
-    llm_config_draft: dict | UndefinedString = Field(
-        default=undefined_string,
-        description='Draft LLM configuration for less important actions',
-    )
-
-    enable_history_truncation: bool = Field(
-        default=True,
-        description='Whether to enable history truncation when conversation gets too long',
-    )
-
-    microagent_dir: str | UndefinedString = Field(
-        default=undefined_string,
-        description='Directory to store microagents',
-    )
-
-    microagent_org: str | UndefinedString = Field(
-        default=undefined_string,
-        description='Organization to use for microagents',
-    )
-
-    codeact_enable_jupyter: bool = Field(
-        default=True,
-        description='Whether to enable Jupyter for CodeAct agent',
-    )
-
-    codeact_enable_llm_editor: bool = Field(
-        default=True,
-        description='Whether to enable LLM-based editor for CodeAct agent',
-    )
-
-    browse_chunk_size: int = Field(
-        default=8192,
-        description='Chunk size for browsing',
-    )
-
-    llm_config_condenser: dict | UndefinedString = Field(
-        default=undefined_string,
-        description='LLM configuration for condensing the conversation',
-    )
-
-    use_condensation: bool = Field(
-        default=True,
-        description='Whether to use condensation to summarize the conversation',
-    )
-
-    # SECURITY FEATURES COMPLETELY DISABLED
-    security_analyzer: str = Field(
-        default='',
-        description='Security analyzer completely disabled',
-    )
-
-    # NO RESTRICTIONS ON ANY OPERATIONS
-    enable_all_operations: bool = Field(
-        default=True,
-        description='Enable all operations without restrictions',
-    )
-
-    disable_security_checks: bool = Field(
-        default=True,
-        description='Disable all security checks and validations',
-    )
-
-    unrestricted_mode: bool = Field(
-        default=True,
-        description='Run in completely unrestricted mode',
-    )
-
-    # Allow all file operations
-    allow_file_operations: bool = Field(
-        default=True,
-        description='Allow all file operations without restriction',
-    )
-
-    # Allow all network operations
-    allow_network_operations: bool = Field(
-        default=True,
-        description='Allow all network operations without restriction',
-    )
-
-    # Allow all system operations
-    allow_system_operations: bool = Field(
-        default=True,
-        description='Allow all system operations without restriction',
-    )
+    @property
+    def resolved_system_prompt_filename(self) -> str:
+        """
+        Returns the appropriate system prompt filename based on the agent configuration.
+        When enable_plan_mode is True, automatically uses the long horizon system prompt
+        unless a custom system_prompt_filename was explicitly set (not the default).
+        """
+        if self.enable_plan_mode and self.system_prompt_filename == 'system_prompt.j2':
+            return 'system_prompt_long_horizon.j2'
+        return self.system_prompt_filename
 
     @classmethod
-    def get_llm_config_arg(cls, value):
-        """Return a dict for the LLM configuration from raw input."""
-        from openhands.core.config.llm_config import LLMConfig
+    def from_toml_section(cls, data: dict) -> dict[str, AgentConfig]:
+        """Create a mapping of AgentConfig instances from a toml dictionary representing the [agent] section.
 
-        if isinstance(value, str):
-            if value == '':
-                return LLMConfig()
-            config = LLMConfig(model=value)
-        elif isinstance(value, dict):
-            config = LLMConfig(**value)
-        else:
-            config = value
+        The default configuration is built from all non-dict keys in data.
+        Then, each key with a dict value is treated as a custom agent configuration, and its values override
+        the default configuration.
 
-        return config
+        Example:
+        Apply generic agent config with custom agent overrides, e.g.
+            [agent]
+            enable_prompt_extensions = false
+            [agent.BrowsingAgent]
+            enable_prompt_extensions = true
+        results in prompt_extensions being true for BrowsingAgent but false for others.
 
-    _fields_info: ClassVar[dict[str, str]] = get_field_info(agent_name=agent_name)
+        Returns:
+            dict[str, AgentConfig]: A mapping where the key "agent" corresponds to the default configuration
+            and additional keys represent custom configurations.
+        """
+        # Initialize the result mapping
+        agent_mapping: dict[str, AgentConfig] = {}
 
-    def defaults_to_dict(self) -> dict:
-        """Serialize fields to a dictionary."""
-        return {
-            'agent_name': self.agent_name,
-            'max_iterations': self.max_iterations,
-            'max_budget_per_task': self.max_budget_per_task,
-            'enable_auto_lint': self.enable_auto_lint,
-            'enable_auto_test': self.enable_auto_test,
-            'disable_color': self.disable_color,
-            'confirmation_mode': self.confirmation_mode,
-            'memory_enabled': self.memory_enabled,
-            'memory_max_threads': self.memory_max_threads,
-            'llm_config_draft': self.llm_config_draft,
-            'enable_history_truncation': self.enable_history_truncation,
-            'microagent_dir': self.microagent_dir,
-            'microagent_org': self.microagent_org,
-            'codeact_enable_jupyter': self.codeact_enable_jupyter,
-            'codeact_enable_llm_editor': self.codeact_enable_llm_editor,
-            'browse_chunk_size': self.browse_chunk_size,
-            'llm_config_condenser': self.llm_config_condenser,
-            'use_condensation': self.use_condensation,
-            'security_analyzer': self.security_analyzer,
-            'enable_all_operations': self.enable_all_operations,
-            'disable_security_checks': self.disable_security_checks,
-            'unrestricted_mode': self.unrestricted_mode,
-            'allow_file_operations': self.allow_file_operations,
-            'allow_network_operations': self.allow_network_operations,
-            'allow_system_operations': self.allow_system_operations,
-        }
+        # Extract base config data (non-dict values)
+        base_data = {}
+        custom_sections: dict[str, dict] = {}
+        for key, value in data.items():
+            if isinstance(value, dict):
+                custom_sections[key] = value
+            else:
+                base_data[key] = value
+
+        # Try to create the base config
+        try:
+            base_config = cls.model_validate(base_data)
+            agent_mapping['agent'] = base_config
+        except ValidationError as e:
+            logger.warning(f'Invalid base agent configuration: {e}. Using defaults.')
+            # If base config fails, create a default one
+            base_config = cls()
+            # Still add it to the mapping
+            agent_mapping['agent'] = base_config
+
+        # Process each custom section independently
+        for name, overrides in custom_sections.items():
+            try:
+                # Merge base config with overrides
+                merged = {**base_config.model_dump(), **overrides}
+                if merged.get('classpath'):
+                    # if an explicit classpath is given, try to load it and look up its config model class
+                    from openhands.controller.agent import Agent
+
+                    try:
+                        agent_cls = get_impl(Agent, merged.get('classpath'))
+                        custom_config = agent_cls.config_model.model_validate(merged)
+                    except Exception as e:
+                        logger.warning(
+                            f'Failed to load custom agent class [{merged.get("classpath")}]: {e}. Using default config model.'
+                        )
+                        custom_config = cls.model_validate(merged)
+                else:
+                    # otherwise, try to look up the agent class by name (i.e. if it's a built-in)
+                    # if that fails, just use the default AgentConfig class.
+                    try:
+                        agent_cls = Agent.get_cls(name)
+                        custom_config = agent_cls.config_model.model_validate(merged)
+                    except Exception:
+                        # otherwise, just fall back to the default config model
+                        custom_config = cls.model_validate(merged)
+                agent_mapping[name] = custom_config
+            except ValidationError as e:
+                logger.warning(
+                    f'Invalid agent configuration for [{name}]: {e}. This section will be skipped.'
+                )
+                # Skip this custom section but continue with others
+                continue
+
+        return agent_mapping
